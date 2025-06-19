@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Document</title>
+		<script src="../js/cs_index.js" defer></script>
+		<style>
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+
+				font-family: monospace;
+				font-size: 16px;
+			}
+			body {
+				overflow: hidden;
+				width: 300px;
+				height: 500px;
+			}
+			player-main {
+				display: flex;
+				align-items: center;
+				width: fit-content;
+				height: auto;
+				aspect-ratio: 1/1;
+				contain: layout;
+				line-height: 1;
+				border-radius: 1rem;
+				background-color: cadetblue;
+				letter-spacing: -0.4ch;
+				cursor: pointer;
+				user-select: none;
+				font-size: 1rem;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<player-main x="0" y="0">Hello World</player-main>
+		<!-- Empty because everything is handled by javascript -->
+	</body>
+</html>

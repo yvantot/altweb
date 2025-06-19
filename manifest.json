@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Alt-Web",
+    "author": "Jun Ivanne Dalman",
+    "version": "1.0.0",
+    "description": "Alt-Web brings the power of Alt-Tab to the web. Instantly switch between tabs, windows, or even bookmarks, all without leaving your current site.",
+    "homepage_url": "https://yvantot.github.io/i",
+    "permissions": [
+        "tabs"
+    ],
+    "background": {
+        "service_worker": "js/bg_index.js"
+    },
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "content_scripts": [
+        {
+            "js": [
+                "./js/cs_index.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "./html/index.html",
+        "default_title": "Alt-Web"
+    }
+}
