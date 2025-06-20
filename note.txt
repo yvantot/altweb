@@ -7,12 +7,14 @@ Flow
 - Alt + ArrowKeys = [<-,->] Tab selection, [^, v] Mode selection [Windows, Bookmarks]
 - Alt + E = Search for a tab
 
-
 Browser Extension API Limitation
 1. Content script cannot be injected to new tab, option tab, or anything Chrome disallows.
+2. Screenshot is only possible for current tab.
 
 Possible solution for the Limitation
 1. Create  a popup-html for it, and use Windows API if injecting is not allowed
+[X] 2. Store screenshots at visits, and pull imgs from storage based on their domain, but the problem is it's not updated... or store is as a session?!
+[/] 2. Use window popups to preview tabs
 
 Possible implementation problems
 1. If my extension loads before the webpage, the possibility of my elements being overwritten is high (some websites are weird)
@@ -20,7 +22,8 @@ Possible implementation problems
 3. Existing commands will make my shortcuts obsolete if the website has it.
 
 Possible implementation solutions
-1. I can use setInterval forever to check if my element is appended, if not, then append
+[x] 1. I can use setInterval forever to check if my element is appended, if not, then append. 
+[/] 1. Element attachment is based on user-input.
 2. Use of all: initial. Use of shadowDOM API. Use of custom elements?
 3. Allow mouse use? Allow user shortcut re-mapping?
 

@@ -6,7 +6,10 @@
     "description": "Alt-Web brings the power of Alt-Tab to the web. Instantly switch between tabs, windows, or even bookmarks, all without leaving your current site.",
     "homepage_url": "https://yvantot.github.io/i",
     "permissions": [
-        "tabs"
+        "tabs",
+        "windows",
+        "bookmarks",
+        "storage"
     ],
     "background": {
         "service_worker": "js/bg_index.js"
@@ -21,7 +24,8 @@
             ],
             "matches": [
                 "<all_urls>"
-            ]
+            ],
+            "run_at": "document_start"
         }
     ],
     "action": {
