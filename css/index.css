@@ -35,6 +35,33 @@
 	font-size: 16px !important;
 	color-scheme: light dark;
 
+	.preview-container {
+		position: fixed;
+		height: 30vh;
+		bottom: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+		.preview-img {
+			width: inherit;
+			height: inherit;
+			object-fit: contain;
+		}
+		.error-preview {
+			width: fit-content;
+			font-size: 0.9rem;
+			font-family: system-ui;
+			background: hsla(0, 0%, 10%);
+			padding: 1rem;
+			text-align: center;
+			white-space: nowrap;
+			border-radius: 0.5rem;
+			margin-top: auto;
+			color: hsla(0, 0%, 90%);
+			display: inline-block;
+			transform: translateY(-2rem);
+		}
+	}
+
 	.tabs-container {
 		display: flex;
 		align-items: center;

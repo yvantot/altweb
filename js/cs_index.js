@@ -1,6 +1,6 @@
 window.browser = window.browser || window.chrome;
 
-class AltWeb {
+class AltWebCS {
 	constructor() {
 		this.host = null;
 		this.popup_id = null;
@@ -16,7 +16,7 @@ class AltWeb {
 	}
 
 	create_tab(tab) {
-		const { favIconUrl, id, windowId, title, url } = tab;
+		const { favIconUrl, id, windowId, title, url, index } = tab;
 		let favicon = "";
 		if (favIconUrl == null) favicon = `<div class="favicon-placeholder"><svg><use href="#icon-website"></use></svg></div>`;
 		else if (favIconUrl === "") favicon = `<div class="favicon-placeholder"><svg><use href="#icon-browser"></use></svg></div>`;
@@ -24,7 +24,7 @@ class AltWeb {
 
 		const element = Util.create_element(
 			"div",
-			{ class: "tab-container", dataset: { tab_id: id, window_id: windowId, tab_title: title, tab_url: url } },
+			{ class: "tab-container", dataset: { id, windowId, title, url, index } },
 			`
 				${favicon}
 			`
@@ -36,6 +36,7 @@ class AltWeb {
 		const { tabs, windows, bookmarks, curr_tab } = res;
 		const frag = document.createDocumentFragment();
 		const tabs_c = Util.create_element("div", { class: "tabs-container" });
+		const preview_c = Util.create_element("div", { class: "preview-container" });
 		const windows_c = Util.create_element("div", { class: "windows-container" });
 		const bookmarks_c = Util.create_element("div", { class: "bookmarks-container" });
 
@@ -43,7 +44,7 @@ class AltWeb {
 			tabs_c.append(this.create_tab(tab));
 		}
 
-		frag.append(windows_c, tabs_c, bookmarks_c);
+		frag.append(preview_c, windows_c, tabs_c, bookmarks_c);
 		return frag;
 	}
 
@@ -62,18 +63,36 @@ class AltWeb {
  				</symbol>
  			</svg>
 			<style>
-				/* --css-start */*, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; user-select: none !important; } :host { contain: layout !important; all: initial !important; --font-color: light-dark(black, white); --bg-color: light-dark(hsla(0, 0%, 95%, 1), hsla(0, 0%, 5%, 1)); --svg-fill: light-dark(hsla(0, 0%, 5%, 0.5), hsla(0, 0%, 95%, 0.5)); --tab-transform-hov: scale(1.5, 1.5) translate(0, -0.5rem); backdrop-filter: blur(10px) !important; display: flex !important; position: fixed !important; top: 50% !important; left: 50% !important; align-items: center !important; transform: translate(-50%, -50%) !important; z-index: 99999999 !important; border-radius: 10px !important; backdrop-filter: blur(10px); border-top: 2px solid hsla(0, 0%, 50%, 0.5) !important; box-shadow: 0px 10px 20px hsla(0, 0%, 0%, 0.3) !important; padding: 1rem !important; width: fit-content !important; max-width: 80vw !important; height: fit-content !important; font-size: 16px !important; color-scheme: light dark; .tabs-container { display: flex; align-items: center; width: 100%; height: fit-content; transition: gap 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-color: var(--bg-color) !important; border-radius: 10px !important; padding: 1rem; gap: 1rem; .tab-container { display: flex; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease-in-out; align-items: center; cursor: pointer; .favicon-placeholder { display: flex; justify-content: center; align-items: center; svg { fill: var(--svg-fill); } } .tab-favicon, .favicon-placeholder { filter: drop-shadow(0px 5px 5px hsla(0, 0%, 0%, 0.3)); border-radius: 5px; width: 30px; height: 30px; } } } } .no-display { display: none !important; } .tab-hover { padding-bottom: 0.3rem; transform: var(--tab-transform-hov); } /* --css-end */
+				/* --css-start */*, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; user-select: none !important; } :host { contain: layout !important; all: initial !important; --font-color: light-dark(black, white); --bg-color: light-dark(hsla(0, 0%, 95%, 1), hsla(0, 0%, 5%, 1)); --svg-fill: light-dark(hsla(0, 0%, 5%, 0.5), hsla(0, 0%, 95%, 0.5)); --tab-transform-hov: scale(1.5, 1.5) translate(0, -0.5rem); backdrop-filter: blur(10px) !important; display: flex !important; position: fixed !important; top: 50% !important; left: 50% !important; align-items: center !important; transform: translate(-50%, -50%) !important; z-index: 99999999 !important; border-radius: 10px !important; backdrop-filter: blur(10px); border-top: 2px solid hsla(0, 0%, 50%, 0.5) !important; box-shadow: 0px 10px 20px hsla(0, 0%, 0%, 0.3) !important; padding: 1rem !important; width: fit-content !important; max-width: 80vw !important; height: fit-content !important; font-size: 16px !important; color-scheme: light dark; .preview-container { position: fixed; height: 30vh; bottom: 100%; left: 50%; transform: translateX(-50%); .preview-img { width: inherit; height: inherit; object-fit: contain; } .error-preview { width: fit-content; font-size: 0.9rem; font-family: system-ui; background: hsla(0, 0%, 10%); padding: 1rem; text-align: center; white-space: nowrap; border-radius: 0.5rem; margin-top: auto; color: hsla(0, 0%, 90%); display: inline-block; transform: translateY(-2rem); } } .tabs-container { display: flex; align-items: center; width: 100%; height: fit-content; transition: gap 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-color: var(--bg-color) !important; border-radius: 10px !important; padding: 1rem; gap: 1rem; .tab-container { display: flex; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease-in-out; align-items: center; cursor: pointer; .favicon-placeholder { display: flex; justify-content: center; align-items: center; svg { fill: var(--svg-fill); } } .tab-favicon, .favicon-placeholder { filter: drop-shadow(0px 5px 5px hsla(0, 0%, 0%, 0.3)); border-radius: 5px; width: 30px; height: 30px; } } } } .no-display { display: none !important; } .tab-hover { padding-bottom: 0.3rem; transform: var(--tab-transform-hov); } /* --css-end */
 			</style>
 			`
 		);
 	}
 
-	preview_tab() {
+	async preview_tab(container) {
+		container.querySelector(".error-preview")?.remove();
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
-			const id = child.dataset.tab_id;
-			browser.runtime.sendMessage({ message: "preview_tab", id, popup_id: this.popup_id });
+			const url = child.dataset.url;
+			const id = child.dataset.id;
+			const windowId = child.dataset.windowId;
+			const index = child.dataset.index;
+			const is_site = /((?:https:\/\/)?[a-zA-Z\d]{2,}\.[a-zA-Z]{2,}\/?.*?(?=[\s<>]|$))/.test(url);
+			if (!is_site) return;
+
+			const { src = null, error = false } = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
+			const img = Util.create_element("img", { class: "preview-img" });
+
+			if (src) {
+				img.src = src;
+			}
+			if (error) {
+				img.removeAttribute("src");
+			}
+
+			container.innerHTML = "";
+			container.append(img);
 		}
 	}
 
@@ -81,8 +100,8 @@ class AltWeb {
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
-			const id = child.dataset.tab_id;
-			const windowId = child.dataset.window_id;
+			const id = child.dataset.id;
+			const windowId = child.dataset.windowId;
 			browser.runtime.sendMessage({ message: "focus_tab", id, windowId });
 		}
 		this.host = null;
@@ -116,7 +135,7 @@ class AltWeb {
 				case "Q":
 				case "W": {
 					requestAnimationFrame(() => {
-						browser.runtime.sendMessage({ message: "fetch_data" }, (res) => {
+						browser.runtime.sendMessage({ message: "fetch_data" }, async (res) => {
 							const altweb = this.create_main();
 							const dx = key === "W" ? 1 : -1;
 
@@ -129,16 +148,14 @@ class AltWeb {
 
 								this.tab_index = res.curr_tab_index;
 								const tabs_c = this.host.querySelector(".tabs-container");
-								if (tabs_c) {
-									this.move_selection(tabs_c, dx);
-									this.preview_tab();
-								}
+								const preview_c = this.host.querySelector(".preview-container");
+								if (tabs_c) this.move_selection(tabs_c, dx);
+								if (preview_c) this.preview_tab(preview_c);
 							} else {
 								const tabs_c = this.host.querySelector(".tabs-container");
-								if (tabs_c) {
-									this.move_selection(tabs_c, dx);
-									this.preview_tab();
-								}
+								const preview_c = this.host.querySelector(".preview-container");
+								if (tabs_c) this.move_selection(tabs_c, dx);
+								if (preview_c) this.preview_tab(preview_c);
 							}
 						});
 					});
@@ -210,6 +227,4 @@ class Util {
 	}
 }
 
-const main = new AltWeb();
-
-main.init();
+new AltWebCS().init();

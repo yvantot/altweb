@@ -9,7 +9,8 @@
         "tabs",
         "windows",
         "bookmarks",
-        "storage"
+        "storage",
+        "unlimitedStorage"
     ],
     "background": {
         "service_worker": "js/bg_index.js"
