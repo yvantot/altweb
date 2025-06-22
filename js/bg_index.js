@@ -1,11 +1,6 @@
 self.browser = self.browser || self.chrome;
 
 class AltWebBG {
-	constructor() {
-		this.timeout = null;
-		this.interval = null;
-	}
-
 	init() {
 		browser.runtime.onMessage.addListener((receive, _, send) => this.handle_onmessage(receive, send));
 	}
@@ -69,7 +64,6 @@ class AltWebBG {
 		return { tabs, windows, bookmarks, curr_tab_index: Math.max(i - 1, 0) };
 	}
 
-	// TODO: Remove the polling
 	async fetch_preview(receive) {
 		const id = parseInt(receive.id);
 		const windowId = parseInt(receive.windowId);
@@ -85,37 +79,23 @@ class AltWebBG {
 			return { src: preview_sources[url].src };
 		} else {
 			try {
-				const popup = await browser.windows.create({ tabId: id, type: "popup", focused: true, state: "maximized" });
+				const popup = await browser.windows.create({ tabId: id, type: "popup", focused: false, width: 1000, height: 650, top: 0, left: 0 });
+				await new Promise((r) => setTimeout(r, 300));
+				try {
+					browser.windows.update(popup.id, { focused: true });
+					const src = await browser.tabs.captureVisibleTab(popup.id, { format: "jpeg", quality: 50 });
+					browser.tabs.move(id, { index, windowId });
 
-				// Polling till the tab is complete, clear after 1s...
-				this.timeout = setTimeout(() => clearInterval(this.interval), 1000);
-				this.interval = setInterval(async () => {
-					try {
-						// Possible UX problem is that loading-tab will stay
-						const tab = await browser.tabs.get(id);
-						if (tab.status === "complete") {
-							clearTimeout(this.timeout);
-							clearInterval(this.interval);
-
-							await new Promise((r) => setTimeout(r, 100));
-							const src = await browser.tabs.captureVisibleTab(popup.id, { format: "jpeg", quality: 50 });
-							await browser.tabs.move(id, { index, windowId });
-							preview_sources[url] = { src, timestamp: new Date().toISOString() };
-							await browser.storage.local.set({ preview_sources });
-
-							return { src };
-						} else if (tab.status === "unloaded") throw new Error();
-					} catch (e) {
-						clearTimeout(this.timeout);
-						clearInterval(this.interval);
-
-						await browser.tabs.move(id, { index, windowId });
-					}
-				}, 100);
+					preview_sources[url] = { src, timestamp: new Date().toISOString() };
+					browser.storage.local.set({ preview_sources });
+					return { src };
+				} catch (e) {
+					console.error(e);
+					browser.tabs.move(id, { index, windowId });
+				}
 			} catch (e) {
-				clearTimeout(this.timeout);
-				clearInterval(this.interval);
-				await browser.tabs.move(id, { index, windowId });
+				console.error(e);
+				browser.tabs.move(id, { index, windowId });
 				return null;
 			}
 		}
@@ -136,9 +116,9 @@ class AltWebBG {
 		}
 	}
 }
-
+// 15 * 24 * 60 * 60 * 1000
 (async () => {
 	const index = new AltWebBG();
-	await index.delete_old_preview(15 * 24 * 60 * 60 * 1000);
+	await index.delete_old_preview(1000);
 	index.init();
 })();

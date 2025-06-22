@@ -13,8 +13,25 @@ class AltWebCS {
 	init() {
 		window.addEventListener("keydown", (e) => this.handle_keydown(e));
 		window.addEventListener("keyup", (e) => this.handle_keyup(e));
-
+		document.addEventListener("mousedown", (e) => this.handle_mousedown(e));
 		browser.runtime.onMessage.addListener((receive, _, send) => this.handle_onmessage(receive, send));
+
+		this.add_font();
+	}
+
+	remove_altweb() {
+		this.get_elements().get_root()?.remove();
+	}
+
+	handle_mousedown(e) {
+		const altweb = e.target.closest("#altweb");
+		if (!altweb) this.remove_altweb();
+	}
+
+	add_font() {
+		const font_path = browser.runtime.getURL("assets/Quicksand.ttf");
+		const font = Util.create_element("style", {}, `@font-face { font-family: "AltWeb-Quicksand"; src: url("${font_path}") format("truetype")} `);
+		document.addEventListener("DOMContentLoaded", () => document.head.append(font));
 	}
 
 	create_tab(tab) {
@@ -54,20 +71,17 @@ class AltWebCS {
 		if (document.getElementById("altweb")) return null;
 		const { host, element } = Util.create_element("div", { shadow: true, id: "altweb" });
 		const css_path = browser.runtime.getURL("css/cs_index.css");
-		const font_path = browser.runtime.getURL("assets/Quicksand.ttf");
 		const css = Util.create_element("link", { rel: "stylesheet", type: "text/css", href: `${css_path}` });
-		const font = Util.create_element("style", {}, `@font-face { font-family: "AltWeb-Quicksand"; src: url("${font_path}") format("truetype")} `);
 		// prettier-ignore
-		const svg = Util.create_element("svg", { class: "no-display" },
-			`	<symbol id="icon-website" viewBox="0 -960 960 960">
-					<path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-7-.5-14.5T799-507q-5 29-27 48t-52 19h-80q-33 0-56.5-23.5T560-520v-40H400v-80q0-33 23.5-56.5T480-720h40q0-23 12.5-40.5T563-789q-20-5-40.5-8t-42.5-3q-134 0-227 93t-93 227h200q66 0 113 47t47 113v40H400v110q20 5 39.5 7.5T480-160Z"/>
-				</symbol>
-				<symbol id="icon-browser" viewBox="0 -960 960 960">
-					<path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
-				</symbol>`
+		const svg = Util.create_element("svg",{ namespace: "svg", class: "no-display" },
+			`<symbol id="icon-website" viewBox="0 -960 960 960">
+				<path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-7-.5-14.5T799-507q-5 29-27 48t-52 19h-80q-33 0-56.5-23.5T560-520v-40H400v-80q0-33 23.5-56.5T480-720h40q0-23 12.5-40.5T563-789q-20-5-40.5-8t-42.5-3q-134 0-227 93t-93 227h200q66 0 113 47t47 113v40H400v110q20 5 39.5 7.5T480-160Z"/>
+			</symbol>
+			<symbol id="icon-browser" viewBox="0 -960 960 960">
+				<path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
+			</symbol>`
 		);
-		document.head.append(font);
-		host.append(svg, css);
+		host.append(css, svg);
 		return { host, element };
 	}
 
@@ -91,9 +105,10 @@ class AltWebCS {
 
 	async preview_tab(container) {
 		if (this.tab_index === this.index_origin) {
-			container.querySelectorAll("img").forEach((img) => img.remove());
+			container.querySelector("img")?.remove();
 			return;
 		}
+
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
@@ -104,22 +119,27 @@ class AltWebCS {
 
 			const is_site = /((?:https:\/\/)?[a-zA-Z\d]{2,}\.[a-zA-Z]{2,}\/?.*?(?=[\s<>]|$))/.test(url);
 			if (!is_site) {
-				container.querySelectorAll("img").forEach((img) => img.remove());
+				container.querySelector("img")?.remove();
 				return;
 			}
 
-			container.querySelectorAll("img").forEach((img) => img.remove());
 			const res = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
-			if (res) {
-				if (res.src) {
-					const img = Util.create_element("img", { class: "preview-img", src: res.src });
-					container.append(img);
+			if (res && res.src) {
+				const old_img = container.querySelector("img");
+				if (old_img) {
+					old_img.src = res.src;
+				} else {
+					const new_img = Util.create_element("img", { class: "preview-img", src: res.src });
+					container.append(new_img);
 				}
+			} else {
+				container.querySelector("img")?.remove();
 			}
 		}
 	}
 
 	focus_tab() {
+		if (!document.getElementById("altweb")) return;
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
@@ -163,52 +183,60 @@ class AltWebCS {
 			switch (key) {
 				case "Q":
 				case "W": {
-					browser.runtime.sendMessage({ message: "fetch_data" }).then((res) => {
-						const altweb = this.create_main();
-						const dx = key === "W" ? 1 : -1;
+					try {
+						browser.runtime.sendMessage({ message: "fetch_data" }).then((res) => {
+							const altweb = this.create_main();
+							const dx = key === "W" ? 1 : -1;
 
-						if (altweb) {
-							const { element, host } = altweb;
-							this.host = host;
-							host.append(this.create_ui(res));
-							const body = document.body;
-							body.insertBefore(element, body.firstChild);
+							if (altweb) {
+								const { element, host } = altweb;
+								this.host = host;
+								host.append(this.create_ui(res));
 
-							if (this.index_origin == null) this.index_origin = res.curr_tab_index;
-							this.tab_index = res.curr_tab_index;
+								const body = document.body;
+								body.insertBefore(element, body.firstChild);
 
-							const tabs_c = this.host.querySelector(".tabs-container");
-							const preview_c = this.host.querySelector(".preview-container");
-							if (tabs_c) this.move_selection(tabs_c, dx);
-							if (preview_c) {
-								this.preview_tab(preview_c);
-								this.preview_info(preview_c);
+								if (this.index_origin == null) this.index_origin = res.curr_tab_index;
+								this.tab_index = res.curr_tab_index;
+
+								const tabs_c = this.host.querySelector(".tabs-container");
+								const preview_c = this.host.querySelector(".preview-container");
+
+								if (tabs_c) this.move_selection(tabs_c, dx);
+								if (preview_c) {
+									this.preview_tab(preview_c);
+									this.preview_info(preview_c);
+								}
+							} else {
+								const tabs_c = this.host.querySelector(".tabs-container");
+								const preview_c = this.host.querySelector(".preview-container");
+
+								if (tabs_c) this.move_selection(tabs_c, dx);
+								if (preview_c) {
+									this.preview_tab(preview_c);
+									this.preview_info(preview_c);
+								}
 							}
-						} else {
-							const tabs_c = this.host.querySelector(".tabs-container");
-							const preview_c = this.host.querySelector(".preview-container");
-							if (tabs_c) this.move_selection(tabs_c, dx);
-							if (preview_c) {
-								this.preview_tab(preview_c);
-								this.preview_info(preview_c);
-							}
-						}
-					});
-
+						});
+					} catch (e) {
+						console.warn("AltWeb: Extension (background script) is inactive due to Chrome's performance optimization. Try performing the action again.");
+					}
 					break;
 				}
 			}
 		}
 
+		// DEVELOPER TOOL
 		if (e.key === "0") {
 			browser.runtime.sendMessage({ message: "reload" });
+			window.location.reload();
 		}
 	}
 
 	handle_keyup(e) {
 		if (e.key === "Alt") {
 			this.focus_tab();
-			this.get_elements().get_root()?.remove();
+			this.remove_altweb();
 		}
 	}
 
@@ -230,7 +258,7 @@ class Util {
 	// WARNING: Using innerHTML is DANGEROUS, use innerText instead
 	// Support nodes append through array
 	static create_element(name, attr = {}, inner = "") {
-		const { shadow = false, custom = false } = attr;
+		const { shadow = false, custom = false, namespace = null } = attr;
 
 		if (custom) {
 			if (!customElements.get(name)) {
@@ -246,7 +274,13 @@ class Util {
 		}
 
 		let host = null;
-		const element = document.createElement(name);
+
+		let element;
+		if (namespace === "svg") element = document.createElementNS("http://www.w3.org/2000/svg", name);
+		else element = document.createElement(name);
+
+		if (namespace == null && !custom && element instanceof HTMLUnknownElement) throw new Error(`${element} is not a valid HTML tag`);
+
 		if (shadow) {
 			host = element.attachShadow({ mode: "open" });
 			host.innerHTML = inner.trim();
@@ -268,6 +302,5 @@ class Util {
 		else return element;
 	}
 }
-
 const index = new AltWebCS();
 index.init();

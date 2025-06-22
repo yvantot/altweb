@@ -50,8 +50,7 @@
 			border-radius: 10px;
 			border-bottom-right-radius: 0;
 			border-bottom-left-radius: 0;
-			width: inherit;
-			height: 30vh;
+			max-height: 30vh;
 			object-fit: contain;
 		}
 		.preview-info-container {

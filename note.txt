@@ -1,9 +1,8 @@
 The Goal
-- Make it feel like alt-tab, but for browser\
+- Make it feel like alt-tab, but for browser
+- 
 
 Flow
-- Alt + W = Fetch tabs data, inject the app, if app already injected, move the selection to plus 1
-- No Alt = Kill the app by no display, and make the selected tab active
 - Alt + ArrowKeys = [<-,->] Tab selection, [^, v] Mode selection [Windows, Bookmarks]
 - Alt + E = Search for a tab
 
@@ -12,9 +11,10 @@ Browser Extension API Limitation
 2. Screenshot is only possible for current tab.
 
 Possible solution for the Limitation
-1. Create  a popup-html for it, and use Windows API if injecting is not allowed
+[X] 1. Create  a popup-html for it, and use Windows API if injecting is not allowed
 [X] 2. Store screenshots at visits, and pull imgs from storage based on their domain, but the problem is it's not updated... or store is as a session?!
-[/] 2. Use window popups to preview tabs
+[X] 2. Use window popups to preview tabs
+[/] 2. Use window to preview tabs silently and add show them while picking and store them on storage, then delete them based on max age
 
 Possible implementation problems
 1. If my extension loads before the webpage, the possibility of my elements being overwritten is high (some websites are weird)
@@ -23,39 +23,6 @@ Possible implementation problems
 
 Possible implementation solutions
 [x] 1. I can use setInterval forever to check if my element is appended, if not, then append. 
-[/] 1. Element attachment is based on user-input.
-2. Use of all: initial. Use of shadowDOM API. Use of custom elements?
-3. Allow mouse use? Allow user shortcut re-mapping?
-
-function* generator
-
-contain: layout; is kinda good... experiment
-.post {
-  container-type: inline-size;
-  container-name: sidebar;
-}
-
-.post {
-  container: sidebar / inline-size;
-}
-
-@container sidebar (min-width: 400px) {
-  /* <stylesheet> */
-}
-
-storage.onChanged.addListener(() => {
-    const data = local.get(null);
-    if(data.reason == null) return;
-    
-    for(let entry of data.reason){
-        const { reason, data } = entry;
-        switch(data.reason){
-            case "": {
-                break;
-            }
-        }
-    }
-
-    data.reason = null;
-    local.set({ reason });
-})
+[/] 1. Element attachment is based on user-input, so this problem is solved by design.
+[/] 2. Use of all: initial. Use of shadowDOM API. Use of ~custom~elements~ !important on :host to target important general properties
+[/] 3. Allow mouse use? Allow user shortcut re-mapping?
