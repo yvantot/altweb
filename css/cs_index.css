@@ -4,6 +4,7 @@
 	box-sizing: border-box !important;
 	margin: 0;
 	padding: 0;
+	font-family: "AltWeb-Quicksand", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
 	user-select: none !important;
 }
 
@@ -11,7 +12,7 @@
 	contain: layout !important;
 	all: initial !important;
 
-	--font-color: light-dark(black, white);
+	--font-color: light-dark(hsla(0, 0%, 5%, 1), hsla(0, 0%, 95%, 1));
 	--bg-color: light-dark(hsla(0, 0%, 95%, 1), hsla(0, 0%, 5%, 1));
 	--svg-fill: light-dark(hsla(0, 0%, 5%, 0.5), hsla(0, 0%, 95%, 0.5));
 	--tab-transform-hov: scale(1.5, 1.5) translate(0, -0.5rem);
@@ -37,14 +38,54 @@
 
 	.preview-container {
 		position: fixed;
-		height: 30vh;
+		height: fit-content;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-direction: column;
 		bottom: 100%;
 		left: 50%;
 		transform: translateX(-50%);
 		.preview-img {
+			border-radius: 10px;
+			border-bottom-right-radius: 0;
+			border-bottom-left-radius: 0;
 			width: inherit;
-			height: inherit;
+			height: 30vh;
 			object-fit: contain;
+		}
+		.preview-info-container {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+
+			border-top: 2px solid hsla(0, 0%, 50%, 0.5);
+			border-radius: 10px;
+			border-bottom-right-radius: 0;
+			border-bottom-left-radius: 0;
+			background-color: var(--bg-color);
+			width: fit-content;
+			overflow: hidden;
+			padding: 0.5rem;
+			position: absolute;
+			bottom: 0;
+
+			.preview-title,
+			.preview-link {
+				display: -webkit-box;
+				-webkit-line-clamp: 1;
+				line-clamp: 1;
+				-webkit-box-orient: vertical;
+				border-radius: 3px;
+				text-align: center;
+				width: fit-content;
+				color: var(--font-color);
+				font-size: 0.7rem;
+				overflow: hidden;
+			}
+			.preview-title {
+				font-weight: bold;
+			}
 		}
 		.error-preview {
 			width: fit-content;
@@ -84,6 +125,8 @@
 				justify-content: center;
 				align-items: center;
 				svg {
+					width: 30px;
+					height: 30px;
 					fill: var(--svg-fill);
 				}
 			}

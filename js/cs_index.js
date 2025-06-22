@@ -2,8 +2,10 @@ window.browser = window.browser || window.chrome;
 
 class AltWebCS {
 	constructor() {
+		this.last_keydown = 0;
 		this.host = null;
 		this.popup_id = null;
+		this.index_origin = null;
 		this.tab_index = 0;
 		this.create_main = this.create_main.bind(this);
 	}
@@ -50,27 +52,48 @@ class AltWebCS {
 
 	create_main() {
 		if (document.getElementById("altweb")) return null;
-		return Util.create_element(
-			"div",
-			{ shadow: true, id: "altweb" },
-			`
-			<svg class="no-display">
- 				<symbol id="icon-website" viewBox="0 -960 960 960">
- 					<path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-7-.5-14.5T799-507q-5 29-27 48t-52 19h-80q-33 0-56.5-23.5T560-520v-40H400v-80q0-33 23.5-56.5T480-720h40q0-23 12.5-40.5T563-789q-20-5-40.5-8t-42.5-3q-134 0-227 93t-93 227h200q66 0 113 47t47 113v40H400v110q20 5 39.5 7.5T480-160Z"/>
- 				</symbol>
- 				<symbol id="icon-browser" viewBox="0 -960 960 960">
- 					<path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
- 				</symbol>
- 			</svg>
-			<style>
-				/* --css-start */*, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; user-select: none !important; } :host { contain: layout !important; all: initial !important; --font-color: light-dark(black, white); --bg-color: light-dark(hsla(0, 0%, 95%, 1), hsla(0, 0%, 5%, 1)); --svg-fill: light-dark(hsla(0, 0%, 5%, 0.5), hsla(0, 0%, 95%, 0.5)); --tab-transform-hov: scale(1.5, 1.5) translate(0, -0.5rem); backdrop-filter: blur(10px) !important; display: flex !important; position: fixed !important; top: 50% !important; left: 50% !important; align-items: center !important; transform: translate(-50%, -50%) !important; z-index: 99999999 !important; border-radius: 10px !important; backdrop-filter: blur(10px); border-top: 2px solid hsla(0, 0%, 50%, 0.5) !important; box-shadow: 0px 10px 20px hsla(0, 0%, 0%, 0.3) !important; padding: 1rem !important; width: fit-content !important; max-width: 80vw !important; height: fit-content !important; font-size: 16px !important; color-scheme: light dark; .preview-container { position: fixed; height: 30vh; bottom: 100%; left: 50%; transform: translateX(-50%); .preview-img { width: inherit; height: inherit; object-fit: contain; } .error-preview { width: fit-content; font-size: 0.9rem; font-family: system-ui; background: hsla(0, 0%, 10%); padding: 1rem; text-align: center; white-space: nowrap; border-radius: 0.5rem; margin-top: auto; color: hsla(0, 0%, 90%); display: inline-block; transform: translateY(-2rem); } } .tabs-container { display: flex; align-items: center; width: 100%; height: fit-content; transition: gap 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-color: var(--bg-color) !important; border-radius: 10px !important; padding: 1rem; gap: 1rem; .tab-container { display: flex; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease-in-out; align-items: center; cursor: pointer; .favicon-placeholder { display: flex; justify-content: center; align-items: center; svg { fill: var(--svg-fill); } } .tab-favicon, .favicon-placeholder { filter: drop-shadow(0px 5px 5px hsla(0, 0%, 0%, 0.3)); border-radius: 5px; width: 30px; height: 30px; } } } } .no-display { display: none !important; } .tab-hover { padding-bottom: 0.3rem; transform: var(--tab-transform-hov); } /* --css-end */
-			</style>
-			`
+		const { host, element } = Util.create_element("div", { shadow: true, id: "altweb" });
+		const css_path = browser.runtime.getURL("css/cs_index.css");
+		const font_path = browser.runtime.getURL("assets/Quicksand.ttf");
+		const css = Util.create_element("link", { rel: "stylesheet", type: "text/css", href: `${css_path}` });
+		const font = Util.create_element("style", {}, `@font-face { font-family: "AltWeb-Quicksand"; src: url("${font_path}") format("truetype")} `);
+		// prettier-ignore
+		const svg = Util.create_element("svg", { class: "no-display" },
+			`	<symbol id="icon-website" viewBox="0 -960 960 960">
+					<path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-7-.5-14.5T799-507q-5 29-27 48t-52 19h-80q-33 0-56.5-23.5T560-520v-40H400v-80q0-33 23.5-56.5T480-720h40q0-23 12.5-40.5T563-789q-20-5-40.5-8t-42.5-3q-134 0-227 93t-93 227h200q66 0 113 47t47 113v40H400v110q20 5 39.5 7.5T480-160Z"/>
+				</symbol>
+				<symbol id="icon-browser" viewBox="0 -960 960 960">
+					<path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
+				</symbol>`
 		);
+		document.head.append(font);
+		host.append(svg, css);
+		return { host, element };
+	}
+
+	preview_info(container) {
+		const tabs_c = this.host?.querySelector(".tabs-container");
+		if (tabs_c) {
+			const child = tabs_c.children[this.tab_index];
+			const title = child.dataset.title;
+			const url = child.dataset.url;
+
+			const preview_info_c = Util.create_element("div", { class: "preview-info-container" });
+			const title_p = Util.create_element("p", { class: "preview-title" });
+			const url_p = Util.create_element("p", { class: "preview-link" });
+			container.querySelectorAll(".preview-info-container").forEach((info) => info.remove());
+			title_p.innerText = Util.limit_line_length(title, 40);
+			url_p.innerText = Util.limit_line_length(url, 40);
+			preview_info_c.append(title_p, url_p);
+			container.append(preview_info_c);
+		}
 	}
 
 	async preview_tab(container) {
-		container.querySelector(".error-preview")?.remove();
+		if (this.tab_index === this.index_origin) {
+			container.querySelectorAll("img").forEach((img) => img.remove());
+			return;
+		}
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
@@ -78,21 +101,21 @@ class AltWebCS {
 			const id = child.dataset.id;
 			const windowId = child.dataset.windowId;
 			const index = child.dataset.index;
+
 			const is_site = /((?:https:\/\/)?[a-zA-Z\d]{2,}\.[a-zA-Z]{2,}\/?.*?(?=[\s<>]|$))/.test(url);
-			if (!is_site) return;
-
-			const { src = null, error = false } = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
-			const img = Util.create_element("img", { class: "preview-img" });
-
-			if (src) {
-				img.src = src;
-			}
-			if (error) {
-				img.removeAttribute("src");
+			if (!is_site) {
+				container.querySelectorAll("img").forEach((img) => img.remove());
+				return;
 			}
 
-			container.innerHTML = "";
-			container.append(img);
+			container.querySelectorAll("img").forEach((img) => img.remove());
+			const res = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
+			if (res) {
+				if (res.src) {
+					const img = Util.create_element("img", { class: "preview-img", src: res.src });
+					container.append(img);
+				}
+			}
 		}
 	}
 
@@ -128,36 +151,48 @@ class AltWebCS {
 	}
 
 	handle_keydown(e) {
+		if (e.key === "Alt") {
+			const now = Date.now();
+			if (now - this.last_keydown < 15 * 1000) return;
+			this.last_keydown = now;
+			browser.runtime.sendMessage({ message: "wake_up" });
+		}
 		if (e.altKey) {
 			const key = e.key.toUpperCase();
 			e.preventDefault();
 			switch (key) {
 				case "Q":
 				case "W": {
-					requestAnimationFrame(() => {
-						browser.runtime.sendMessage({ message: "fetch_data" }, async (res) => {
-							const altweb = this.create_main();
-							const dx = key === "W" ? 1 : -1;
+					browser.runtime.sendMessage({ message: "fetch_data" }).then((res) => {
+						const altweb = this.create_main();
+						const dx = key === "W" ? 1 : -1;
 
-							if (altweb) {
-								const { element, host } = altweb;
-								this.host = host;
-								host.append(this.create_ui(res));
-								const body = document.body;
-								body.insertBefore(element, body.firstChild);
+						if (altweb) {
+							const { element, host } = altweb;
+							this.host = host;
+							host.append(this.create_ui(res));
+							const body = document.body;
+							body.insertBefore(element, body.firstChild);
 
-								this.tab_index = res.curr_tab_index;
-								const tabs_c = this.host.querySelector(".tabs-container");
-								const preview_c = this.host.querySelector(".preview-container");
-								if (tabs_c) this.move_selection(tabs_c, dx);
-								if (preview_c) this.preview_tab(preview_c);
-							} else {
-								const tabs_c = this.host.querySelector(".tabs-container");
-								const preview_c = this.host.querySelector(".preview-container");
-								if (tabs_c) this.move_selection(tabs_c, dx);
-								if (preview_c) this.preview_tab(preview_c);
+							if (this.index_origin == null) this.index_origin = res.curr_tab_index;
+							this.tab_index = res.curr_tab_index;
+
+							const tabs_c = this.host.querySelector(".tabs-container");
+							const preview_c = this.host.querySelector(".preview-container");
+							if (tabs_c) this.move_selection(tabs_c, dx);
+							if (preview_c) {
+								this.preview_tab(preview_c);
+								this.preview_info(preview_c);
 							}
-						});
+						} else {
+							const tabs_c = this.host.querySelector(".tabs-container");
+							const preview_c = this.host.querySelector(".preview-container");
+							if (tabs_c) this.move_selection(tabs_c, dx);
+							if (preview_c) {
+								this.preview_tab(preview_c);
+								this.preview_info(preview_c);
+							}
+						}
 					});
 
 					break;
@@ -187,6 +222,13 @@ class AltWebCS {
 }
 
 class Util {
+	static limit_line_length(str, max = 40, indication = "...") {
+		if (str == null || str === "") return;
+		if (str.length <= max) return str;
+		return str.slice(0, max - indication.length) + indication;
+	}
+	// WARNING: Using innerHTML is DANGEROUS, use innerText instead
+	// Support nodes append through array
 	static create_element(name, attr = {}, inner = "") {
 		const { shadow = false, custom = false } = attr;
 
@@ -227,4 +269,5 @@ class Util {
 	}
 }
 
-new AltWebCS().init();
+const index = new AltWebCS();
+index.init();

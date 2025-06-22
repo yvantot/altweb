@@ -12,6 +12,17 @@
         "storage",
         "unlimitedStorage"
     ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "css/cs_index.css",
+                "assets/Quicksand.ttf"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
     "background": {
         "service_worker": "js/bg_index.js"
     },

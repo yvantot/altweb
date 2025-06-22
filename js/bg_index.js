@@ -7,43 +7,31 @@ class AltWebBG {
 	}
 
 	init() {
-		browser.runtime.onMessage.addListener((receive, _, send) => handle_onmessage(receive, send));
+		browser.runtime.onMessage.addListener((receive, _, send) => this.handle_onmessage(receive, send));
 	}
 
-	async delete_old_preview(max_age) {
-		const { preview_sources } = await browser.storage.local.get("preview_sources");
-		if (preview_sources) {
-			const now = new Date();
-			for (const key in preview_sources) {
-				if (now - new Date(preview_sources[key].timestamp) > max_age) {
-					delete preview_sources[key];
-				}
-			}
-			await browser.storage.local.set({ preview_sources });
-		} else {
-			await browser.storage.local.set({ preview_sources: {} });
-		}
-	}
-
-	async handle_onmessage(receive, send) {
+	// Don't use async on handle_onmessage
+	handle_onmessage(receive, send) {
 		const { message } = receive;
+		if (message === "wake_up") {
+			console.log("Great API guys...");
+			return false;
+		}
 		if (message === "fetch_data") {
-			const res = await this.fetch_data();
-			send(res);
+			this.fetch_data().then((res) => send(res));
 			return true;
 		}
 		if (message === "preview_tab") {
-			const res = await this.fetch_preview(receive);
-			send(res);
+			this.fetch_preview(receive).then((res) => send(res));
 			return true;
 		}
 		if (message === "focus_tab") {
-			await focus_tab(receive);
-			return;
+			this.focus_tab(receive);
+			return false;
 		}
 		if (message === "reload") {
 			browser.runtime.reload();
-			return;
+			return false;
 		}
 	}
 
@@ -81,11 +69,15 @@ class AltWebBG {
 		return { tabs, windows, bookmarks, curr_tab_index: Math.max(i - 1, 0) };
 	}
 
+	// TODO: Remove the polling
 	async fetch_preview(receive) {
 		const id = parseInt(receive.id);
 		const windowId = parseInt(receive.windowId);
 		const index = parseInt(receive.index);
 		const url = receive.url;
+
+		const $tab = await browser.tabs.get(id);
+		if ($tab.status === "loading") return;
 
 		// Check if preview already exist in storage to avoid loading...
 		const { preview_sources = {} } = await browser.storage.local.get("preview_sources");
@@ -95,10 +87,11 @@ class AltWebBG {
 			try {
 				const popup = await browser.windows.create({ tabId: id, type: "popup", focused: true, state: "maximized" });
 
-				// Polling till the tab is complete, clear after 1.5s...
-				this.timeout = setTimeout(() => clearInterval(this.interval), 1500);
+				// Polling till the tab is complete, clear after 1s...
+				this.timeout = setTimeout(() => clearInterval(this.interval), 1000);
 				this.interval = setInterval(async () => {
 					try {
+						// Possible UX problem is that loading-tab will stay
 						const tab = await browser.tabs.get(id);
 						if (tab.status === "complete") {
 							clearTimeout(this.timeout);
@@ -123,9 +116,23 @@ class AltWebBG {
 				clearTimeout(this.timeout);
 				clearInterval(this.interval);
 				await browser.tabs.move(id, { index, windowId });
-
-				return { error: true };
+				return null;
 			}
+		}
+	}
+
+	async delete_old_preview(max_age) {
+		const { preview_sources } = await browser.storage.local.get("preview_sources");
+		if (preview_sources) {
+			const now = new Date();
+			for (const key in preview_sources) {
+				if (now - new Date(preview_sources[key].timestamp) > max_age) {
+					delete preview_sources[key];
+				}
+			}
+			await browser.storage.local.set({ preview_sources });
+		} else {
+			await browser.storage.local.set({ preview_sources: {} });
 		}
 	}
 }
