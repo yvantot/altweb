@@ -15,7 +15,7 @@
 	--font-color: light-dark(hsla(0, 0%, 5%, 1), hsla(0, 0%, 95%, 1));
 	--bg-color: light-dark(hsla(0, 0%, 95%, 1), hsla(0, 0%, 5%, 1));
 	--svg-fill: light-dark(hsla(0, 0%, 5%, 0.5), hsla(0, 0%, 95%, 0.5));
-	--tab-transform-hov: scale(1.5, 1.5) translate(0, -0.5rem);
+	--tab-transform-hov: scale(1.5, 1.5) translate(0, -0.5em);
 
 	backdrop-filter: blur(10px) !important;
 	display: flex !important;
@@ -29,7 +29,7 @@
 	backdrop-filter: blur(10px);
 	border-top: 2px solid hsla(0, 0%, 50%, 0.5) !important;
 	box-shadow: 0px 10px 20px hsla(0, 0%, 0%, 0.3) !important;
-	padding: 1rem !important;
+	padding: 1em !important;
 	width: fit-content !important;
 	max-width: 80vw !important;
 	height: fit-content !important;
@@ -48,8 +48,6 @@
 		transform: translateX(-50%);
 		.preview-img {
 			border-radius: 10px;
-			border-bottom-right-radius: 0;
-			border-bottom-left-radius: 0;
 			max-height: 30vh;
 			object-fit: contain;
 		}
@@ -60,12 +58,10 @@
 
 			border-top: 2px solid hsla(0, 0%, 50%, 0.5);
 			border-radius: 10px;
-			border-bottom-right-radius: 0;
-			border-bottom-left-radius: 0;
 			background-color: var(--bg-color);
 			width: fit-content;
 			overflow: hidden;
-			padding: 0.5rem;
+			padding: 0.5em;
 			position: absolute;
 			bottom: 0;
 
@@ -79,7 +75,7 @@
 				text-align: center;
 				width: fit-content;
 				color: var(--font-color);
-				font-size: 0.7rem;
+				font-size: 0.7em !important;
 				overflow: hidden;
 			}
 			.preview-title {
@@ -88,36 +84,41 @@
 		}
 		.error-preview {
 			width: fit-content;
-			font-size: 0.9rem;
+			font-size: 0.9em;
 			font-family: system-ui;
 			background: hsla(0, 0%, 10%);
-			padding: 1rem;
+			padding: 1em;
 			text-align: center;
 			white-space: nowrap;
-			border-radius: 0.5rem;
+			border-radius: 0.5em;
 			margin-top: auto;
 			color: hsla(0, 0%, 90%);
 			display: inline-block;
-			transform: translateY(-2rem);
+			transform: translateY(-2em);
 		}
 	}
 
 	.tabs-container {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		width: 100%;
 		height: fit-content;
 		transition: gap 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 		background-color: var(--bg-color) !important;
 		border-radius: 10px !important;
-		padding: 1rem;
-		gap: 1rem;
+		padding: 1.5em;
+		gap: 1em;
+		overflow-x: auto;
+		overflow-y: visible;
+
+		scrollbar-width: thin;
 
 		.tab-container {
 			display: flex;
 			transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease-in-out;
 			align-items: center;
 			cursor: pointer;
+			will-change: transform;
 
 			.favicon-placeholder {
 				display: flex;
@@ -143,6 +144,6 @@
 	display: none !important;
 }
 .tab-hover {
-	padding-bottom: 0.3rem;
+	padding-bottom: 0.3em;
 	transform: var(--tab-transform-hov);
 }

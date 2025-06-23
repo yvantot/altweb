@@ -8,18 +8,36 @@ class AltWebCS {
 		this.index_origin = null;
 		this.tab_index = 0;
 		this.create_main = this.create_main.bind(this);
+		this.timeout = null;
+		this.interval = null;
+		this.window_altweb_id = null;
+		this.retry_ms = 1000;
+		this.throttle_ms = 100;
 	}
 
 	init() {
+		this.window_altweb();
+		browser.runtime.onMessage.addListener((receive) => this.handle_onmessage(receive));
 		window.addEventListener("keydown", (e) => this.handle_keydown(e));
 		window.addEventListener("keyup", (e) => this.handle_keyup(e));
 		document.addEventListener("mousedown", (e) => this.handle_mousedown(e));
-		browser.runtime.onMessage.addListener((receive, _, send) => this.handle_onmessage(receive, send));
 
 		this.add_font();
 	}
 
+	window_altweb() {
+		const obj_url = new URL(window.location.href);
+		const search_params = new URLSearchParams(obj_url.search);
+
+		if (search_params.has("altweb") && search_params.get("altweb") === "true") {
+			const key = search_params.get("key").toUpperCase();
+			this.start_altweb(key);
+			document.body.classList.add("altweb-window");
+		}
+	}
+
 	remove_altweb() {
+		if (this.window_altweb_id) browser.runtime.sendMessage({ message: "remove_window_altweb", id: this.window_altweb_id });
 		this.get_elements().get_root()?.remove();
 	}
 
@@ -70,6 +88,7 @@ class AltWebCS {
 	create_main() {
 		if (document.getElementById("altweb")) return null;
 		const { host, element } = Util.create_element("div", { shadow: true, id: "altweb" });
+		element.style.cssText = "display: none;";
 		const css_path = browser.runtime.getURL("css/cs_index.css");
 		const css = Util.create_element("link", { rel: "stylesheet", type: "text/css", href: `${css_path}` });
 		// prettier-ignore
@@ -85,10 +104,68 @@ class AltWebCS {
 		return { host, element };
 	}
 
+	start_altweb(key) {
+		const main = (res) => {
+			const altweb = this.create_main();
+			const dx = key === "W" ? 1 : -1;
+
+			if (altweb) {
+				const { element, host } = altweb;
+				this.host = host;
+				host.append(this.create_ui(res));
+
+				const body = document.body;
+				body.insertBefore(element, body.firstChild);
+
+				if (this.index_origin == null) this.index_origin = res.curr_tab_index;
+				this.tab_index = res.curr_tab_index;
+
+				const tabs_c = this.host.querySelector(".tabs-container");
+				const preview_c = this.host.querySelector(".preview-container");
+
+				if (tabs_c) this.move_selection(tabs_c, dx);
+				if (preview_c) {
+					this.preview_tab(preview_c);
+					this.preview_info(preview_c);
+				}
+			} else {
+				const tabs_c = this.host.querySelector(".tabs-container");
+				const preview_c = this.host.querySelector(".preview-container");
+
+				if (tabs_c) this.move_selection(tabs_c, dx);
+				if (preview_c) {
+					this.preview_tab(preview_c);
+					this.preview_info(preview_c);
+				}
+			}
+		};
+
+		console.log("Starting Altweb...");
+		browser.runtime
+			.sendMessage({ message: "fetch_data" })
+			.then((res) => main(res))
+			.catch(() => {
+				console.log("Error");
+				if (this.timeout) return;
+				console.log("Running again");
+
+				this.timeout = setTimeout(() => {
+					this.timeout = null;
+					console.log("Attempting");
+					browser.runtime
+						.sendMessage({ message: "fetch_data" })
+						.then((res) => main(res))
+						.catch((e) => console.warn("Error trying again"));
+					console.log("Finish");
+				}, this.retry_ms);
+			});
+	}
+
 	preview_info(container) {
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
+			child.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
 			const title = child.dataset.title;
 			const url = child.dataset.url;
 
@@ -104,7 +181,9 @@ class AltWebCS {
 	}
 
 	async preview_tab(container) {
+		if (this.window_altweb_id) container.querySelector("img")?.remove();
 		if (this.tab_index === this.index_origin) {
+			if (this.window_altweb_id) document.body.style.backgroundImage = ``;
 			container.querySelector("img")?.remove();
 			return;
 		}
@@ -119,20 +198,24 @@ class AltWebCS {
 
 			const is_site = /((?:https:\/\/)?[a-zA-Z\d]{2,}\.[a-zA-Z]{2,}\/?.*?(?=[\s<>]|$))/.test(url);
 			if (!is_site) {
+				if (this.window_altweb_id) document.body.style.backgroundImage = ``;
 				container.querySelector("img")?.remove();
 				return;
 			}
 
 			const res = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
 			if (res && res.src) {
-				const old_img = container.querySelector("img");
-				if (old_img) {
-					old_img.src = res.src;
-				} else {
-					const new_img = Util.create_element("img", { class: "preview-img", src: res.src });
-					container.append(new_img);
+				if (this.window_altweb_id) document.body.style.backgroundImage = `url("${res.src}")`;
+				else {
+					const old_img = container.querySelector("img");
+					if (old_img) old_img.src = res.src;
+					else {
+						const new_img = Util.create_element("img", { class: "preview-img", src: res.src });
+						container.append(new_img);
+					}
 				}
 			} else {
+				if (this.window_altweb_id) document.body.style.backgroundImage = ``;
 				container.querySelector("img")?.remove();
 			}
 		}
@@ -152,80 +235,74 @@ class AltWebCS {
 
 	move_selection(container, dx) {
 		container.querySelectorAll(".tab-hover").forEach((el) => el.classList.remove("tab-hover"));
-
 		const children = container.children;
 		this.tab_index += dx;
+
 		if (this.tab_index > children.length - 1) this.tab_index = 0;
 		else if (this.tab_index < 0) this.tab_index = children.length - 1;
 
 		children[this.tab_index].classList.add("tab-hover");
 	}
 
-	handle_onmessage(receive, send) {
-		console.log("1");
-		switch (receive) {
-			case "update_popup_id": {
-				alert(receive.message);
+	remove_tab() {
+		if (!document.getElementById("altweb")) return;
+		const tabs_c = this.host?.querySelector(".tabs-container");
+		const preview_c = this.host.querySelector(".preview-container");
+
+		if (tabs_c) {
+			const child = tabs_c.children[this.tab_index];
+			const id = child.dataset.id;
+
+			const main = () => {
+				child.remove();
+				if (this.tab_index < this.index_origin) this.index_origin -= 1;
+
+				this.move_selection(tabs_c, 0);
+				this.preview_info(preview_c);
+				this.preview_tab(preview_c);
+			};
+
+			browser.runtime
+				.sendMessage({ message: "remove_tab", id })
+				.then(() => main())
+				.catch((e) => {
+					if (this.timeout) return;
+					console.warn("Error, trying again", e);
+					this.timeout = setTimeout(() => {
+						this.timeout = null;
+						browser.runtime
+							.sendMessage({ message: "remove_tab", id })
+							.then(() => main())
+							.catch((e) => console.warn("Retry failed", e));
+					}, this.retry_ms);
+				});
+		}
+	}
+
+	handle_onmessage(receive) {
+		if (receive.message === "window_altweb_id") {
+			this.window_altweb_id = receive.id;
+			return;
+		}
+
+		const now = Date.now();
+		if (now - this.last_keydown < this.throttle_ms) return;
+		this.last_keydown = now;
+
+		const key = receive.key.toUpperCase();
+		switch (key) {
+			case "D":
+				this.remove_tab();
+				break;
+			case "Q":
+			case "W": {
+				this.start_altweb(key);
+				break;
 			}
 		}
 	}
 
 	handle_keydown(e) {
-		if (e.key === "Alt") {
-			const now = Date.now();
-			if (now - this.last_keydown < 15 * 1000) return;
-			this.last_keydown = now;
-			browser.runtime.sendMessage({ message: "wake_up" });
-		}
-		if (e.altKey) {
-			const key = e.key.toUpperCase();
-			e.preventDefault();
-			switch (key) {
-				case "Q":
-				case "W": {
-					try {
-						browser.runtime.sendMessage({ message: "fetch_data" }).then((res) => {
-							const altweb = this.create_main();
-							const dx = key === "W" ? 1 : -1;
-
-							if (altweb) {
-								const { element, host } = altweb;
-								this.host = host;
-								host.append(this.create_ui(res));
-
-								const body = document.body;
-								body.insertBefore(element, body.firstChild);
-
-								if (this.index_origin == null) this.index_origin = res.curr_tab_index;
-								this.tab_index = res.curr_tab_index;
-
-								const tabs_c = this.host.querySelector(".tabs-container");
-								const preview_c = this.host.querySelector(".preview-container");
-
-								if (tabs_c) this.move_selection(tabs_c, dx);
-								if (preview_c) {
-									this.preview_tab(preview_c);
-									this.preview_info(preview_c);
-								}
-							} else {
-								const tabs_c = this.host.querySelector(".tabs-container");
-								const preview_c = this.host.querySelector(".preview-container");
-
-								if (tabs_c) this.move_selection(tabs_c, dx);
-								if (preview_c) {
-									this.preview_tab(preview_c);
-									this.preview_info(preview_c);
-								}
-							}
-						});
-					} catch (e) {
-						console.warn("AltWeb: Extension (background script) is inactive due to Chrome's performance optimization. Try performing the action again.");
-					}
-					break;
-				}
-			}
-		}
-
 		// DEVELOPER TOOL
 		if (e.key === "0") {
 			browser.runtime.sendMessage({ message: "reload" });

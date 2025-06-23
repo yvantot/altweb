@@ -23,6 +23,34 @@
             ]
         }
     ],
+    "commands": {
+        "w": {
+            "suggest_key": {
+                "default": "Alt+W"
+            },
+            "description": "Start Alt-Web, forward",
+            "global": true
+        },
+        "q": {
+            "suggest_key": {
+                "default": "Alt+Q"
+            },
+            "description": "Start Alt-Web, backward",
+            "global": true
+        },
+        "d": {
+            "suggest_key": {
+                "default": "Alt+D"
+            },
+            "description": "Delete tab"
+        },
+        "e": {
+            "suggest_key": {
+                "default": "Alt+E"
+            },
+            "description": "Search tab"
+        }
+    },
     "background": {
         "service_worker": "js/bg_index.js"
     },

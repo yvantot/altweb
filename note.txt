@@ -1,6 +1,8 @@
 The Goal
 - Make it feel like alt-tab, but for browser
-- 
+- Make clicks work
+- Make preview optional
+- Store favicon in storage so no need to fetch again and again
 
 Flow
 - Alt + ArrowKeys = [<-,->] Tab selection, [^, v] Mode selection [Windows, Bookmarks]
@@ -11,7 +13,7 @@ Browser Extension API Limitation
 2. Screenshot is only possible for current tab.
 
 Possible solution for the Limitation
-[X] 1. Create  a popup-html for it, and use Windows API if injecting is not allowed
+[/] 1. Create  a popup-html for it, and use Commands & Windows API if injecting is not allowed
 [X] 2. Store screenshots at visits, and pull imgs from storage based on their domain, but the problem is it's not updated... or store is as a session?!
 [X] 2. Use window popups to preview tabs
 [/] 2. Use window to preview tabs silently and add show them while picking and store them on storage, then delete them based on max age
