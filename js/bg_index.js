@@ -107,19 +107,25 @@ class AltWebBG {
 		const windows = await browser.windows.getAll({});
 		/* TBD */ const bookmarks = await browser.bookmarks.getTree();
 
+		const last_focused_win = await browser.windows.getLastFocused({ windowTypes: ["normal"] });
+		const alt_web = await browser.tabs.query({ url: [`${browser.runtime.getURL("html/index.html")}*`] });
+
+		// This find the correct index origin, the reason for this is because every window's tabs start at index 0
+		// There must be a better way, but fuck it.
 		let i = 0;
 		const t_per_w = {};
+		for (let window of windows) t_per_w[window.id] = { focused: window.focused, count: 0 };
+		if (alt_web.length) t_per_w[last_focused_win.id].focused = true;
 
-		for (let window of windows) {
-			t_per_w[window.id] = { focused: window.focused, count: 0 };
-		}
 		for (let tab of tabs) {
 			if (t_per_w[tab.windowId].focused === false) t_per_w[tab.windowId].count += 1;
 			else {
 				if (tab.active) {
 					t_per_w[tab.windowId].count += 1;
 					break;
-				} else t_per_w[tab.windowId].count += 1;
+				} else {
+					t_per_w[tab.windowId].count += 1;
+				}
 			}
 		}
 		for (let w in t_per_w) {

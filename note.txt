@@ -1,8 +1,8 @@
 The Goal
-- Make it feel like alt-tab, but for browser
 - Make clicks work
 - Make preview optional
 - Store favicon in storage so no need to fetch again and again
+- Add info, options, onInstalled open tab to promote, and popup
 
 Flow
 - Alt + ArrowKeys = [<-,->] Tab selection, [^, v] Mode selection [Windows, Bookmarks]
