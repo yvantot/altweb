@@ -1,8 +1,7 @@
 The Goal
-- Make clicks work
-- Make preview optional
-- Store favicon in storage so no need to fetch again and again
+- Search Filter & Search internet
 - Add info, options, onInstalled open tab to promote, and popup
+*- Make preview optional
 
 Flow
 - Alt + ArrowKeys = [<-,->] Tab selection, [^, v] Mode selection [Windows, Bookmarks]

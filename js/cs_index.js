@@ -2,7 +2,6 @@ window.browser = window.browser || window.chrome;
 
 class AltWebCS {
 	constructor() {
-		this.last_keydown = 0;
 		this.host = null;
 		this.popup_id = null;
 		this.index_origin = null;
@@ -11,11 +10,11 @@ class AltWebCS {
 		this.timeout = null;
 		this.interval = null;
 		this.window_altweb_id = null;
-		this.retry_ms = 1000;
-		this.throttle_ms = 100;
+		this.retry_ms = 1500;
 	}
 
 	init() {
+		this.set_screen_size();
 		this.window_altweb();
 		browser.runtime.onMessage.addListener((receive) => this.handle_onmessage(receive));
 		window.addEventListener("keydown", (e) => this.handle_keydown(e));
@@ -23,6 +22,10 @@ class AltWebCS {
 		document.addEventListener("mousedown", (e) => this.handle_mousedown(e));
 
 		this.add_font();
+	}
+
+	set_screen_size() {
+		browser.storage.local.set({ screen: { width: window.screen.width, height: window.screen.height } });
 	}
 
 	window_altweb() {
@@ -43,7 +46,9 @@ class AltWebCS {
 
 	handle_mousedown(e) {
 		const altweb = e.target.closest("#altweb");
-		if (!altweb) this.remove_altweb();
+		if (!altweb) {
+			this.remove_altweb();
+		}
 	}
 
 	add_font() {
@@ -85,6 +90,29 @@ class AltWebCS {
 		return frag;
 	}
 
+	handle_mouseover(e) {
+		const target = e.target.closest(".tab-container");
+		if (!target) return;
+		console.log(target);
+		const id = target.dataset.id;
+		const windowId = target.dataset.windowId;
+		const url = target.dataset.url;
+		const index = target.dataset.index;
+		const title = target.dataset.title;
+
+		this.preview_info(title, url);
+		this.preview_tab(id, windowId, url, index);
+	}
+
+	handle_onclick(e) {
+		if (e.target.classList.contains("tabs-container")) return;
+
+		const target = e.target.closest(".tab-container");
+		const id = parseInt(target.dataset.id);
+		const windowId = parseInt(target.dataset.windowId);
+		this.focus_tab(id, windowId);
+	}
+
 	create_main() {
 		if (document.getElementById("altweb")) return null;
 		const { host, element } = Util.create_element("div", { shadow: true, id: "altweb" });
@@ -101,6 +129,10 @@ class AltWebCS {
 			</symbol>`
 		);
 		host.append(css, svg);
+
+		host.addEventListener("click", (e) => this.handle_onclick(e));
+		host.addEventListener("mouseover", (e) => this.handle_mouseover(e));
+
 		return { host, element };
 	}
 
@@ -120,54 +152,40 @@ class AltWebCS {
 				if (this.index_origin == null) this.index_origin = res.curr_tab_index;
 				this.tab_index = res.curr_tab_index;
 
-				const tabs_c = this.host.querySelector(".tabs-container");
-				const preview_c = this.host.querySelector(".preview-container");
-
-				if (tabs_c) this.move_selection(tabs_c, dx);
-				if (preview_c) {
-					this.preview_tab(preview_c);
-					this.preview_info(preview_c);
-				}
+				this.move_selection(dx);
+				this.preview_tab();
+				this.preview_info();
 			} else {
-				const tabs_c = this.host.querySelector(".tabs-container");
-				const preview_c = this.host.querySelector(".preview-container");
-
-				if (tabs_c) this.move_selection(tabs_c, dx);
-				if (preview_c) {
-					this.preview_tab(preview_c);
-					this.preview_info(preview_c);
-				}
+				this.move_selection(dx);
+				this.preview_tab();
+				this.preview_info();
 			}
 		};
 
-		console.log("Starting Altweb...");
 		browser.runtime
 			.sendMessage({ message: "fetch_data" })
 			.then((res) => main(res))
 			.catch(() => {
-				console.log("Error");
 				if (this.timeout) return;
-				console.log("Running again");
 
 				this.timeout = setTimeout(() => {
 					this.timeout = null;
-					console.log("Attempting");
 					browser.runtime
 						.sendMessage({ message: "fetch_data" })
 						.then((res) => main(res))
 						.catch((e) => console.warn("Error trying again"));
-					console.log("Finish");
 				}, this.retry_ms);
 			});
 	}
 
-	preview_info(container) {
+	preview_info($title = null, $url = null) {
+		const container = this.host.querySelector(".preview-container");
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
 			child.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-			const title = child.dataset.title;
-			const url = child.dataset.url;
+			const title = $title ?? child.dataset.title;
+			const url = $url ?? child.dataset.url;
 
 			const preview_info_c = Util.create_element("div", { class: "preview-info-container" });
 			const title_p = Util.create_element("p", { class: "preview-title" });
@@ -180,7 +198,8 @@ class AltWebCS {
 		}
 	}
 
-	async preview_tab(container) {
+	async preview_tab($id = null, $windowId = null, $url = null, $index = null) {
+		const container = this.host.querySelector(".preview-container");
 		if (this.window_altweb_id) container.querySelector("img")?.remove();
 		if (this.tab_index === this.index_origin) {
 			if (this.window_altweb_id) document.body.style.backgroundImage = ``;
@@ -191,10 +210,10 @@ class AltWebCS {
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
-			const url = child.dataset.url;
-			const id = child.dataset.id;
-			const windowId = child.dataset.windowId;
-			const index = child.dataset.index;
+			const url = $url ?? child.dataset.url;
+			const id = $id ?? child.dataset.id;
+			const windowId = $windowId ?? child.dataset.windowId;
+			const index = $index ?? child.dataset.index;
 
 			const is_site = /((?:https:\/\/)?[a-zA-Z\d]{2,}\.[a-zA-Z]{2,}\/?.*?(?=[\s<>]|$))/.test(url);
 			if (!is_site) {
@@ -205,8 +224,11 @@ class AltWebCS {
 
 			const res = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
 			if (res && res.src) {
-				if (this.window_altweb_id) document.body.style.backgroundImage = `url("${res.src}")`;
-				else {
+				if (this.window_altweb_id) {
+					// LOLLL
+					if (child.querySelector("#icon-browser")) return;
+					document.body.style.backgroundImage = `url("${res.src}")`;
+				} else {
 					const old_img = container.querySelector("img");
 					if (old_img) old_img.src = res.src;
 					else {
@@ -221,22 +243,26 @@ class AltWebCS {
 		}
 	}
 
-	focus_tab() {
+	focus_tab($id = null, $windowId = null) {
 		if (!document.getElementById("altweb")) return;
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
-			const id = child.dataset.id;
-			const windowId = child.dataset.windowId;
+			const id = $id ?? child.dataset.id;
+			const windowId = $windowId ?? child.dataset.windowId;
 			browser.runtime.sendMessage({ message: "focus_tab", id, windowId });
+
+			this.remove_altweb();
 		}
 		this.host = null;
 	}
 
-	move_selection(container, dx) {
+	move_selection(dx) {
+		const container = this.host.querySelector(".tabs-container");
 		container.querySelectorAll(".tab-hover").forEach((el) => el.classList.remove("tab-hover"));
 		const children = container.children;
 		this.tab_index += dx;
+		console.log(this.tab_index, this.index_origin);
 
 		if (this.tab_index > children.length - 1) this.tab_index = 0;
 		else if (this.tab_index < 0) this.tab_index = children.length - 1;
@@ -246,37 +272,33 @@ class AltWebCS {
 
 	remove_tab() {
 		if (!document.getElementById("altweb")) return;
-		const tabs_c = this.host?.querySelector(".tabs-container");
-		const preview_c = this.host.querySelector(".preview-container");
+		const container = this.host.querySelector(".tabs-container");
+		const child = container.children[this.tab_index];
+		const id = child.dataset.id;
 
-		if (tabs_c) {
-			const child = tabs_c.children[this.tab_index];
-			const id = child.dataset.id;
+		const main = () => {
+			child.remove();
+			if (this.tab_index < this.index_origin) this.index_origin -= 1;
 
-			const main = () => {
-				child.remove();
-				if (this.tab_index < this.index_origin) this.index_origin -= 1;
+			this.move_selection(0);
+			this.preview_info();
+			this.preview_tab();
+		};
 
-				this.move_selection(tabs_c, 0);
-				this.preview_info(preview_c);
-				this.preview_tab(preview_c);
-			};
-
-			browser.runtime
-				.sendMessage({ message: "remove_tab", id })
-				.then(() => main())
-				.catch((e) => {
-					if (this.timeout) return;
-					console.warn("Error, trying again", e);
-					this.timeout = setTimeout(() => {
-						this.timeout = null;
-						browser.runtime
-							.sendMessage({ message: "remove_tab", id })
-							.then(() => main())
-							.catch((e) => console.warn("Retry failed", e));
-					}, this.retry_ms);
-				});
-		}
+		browser.runtime
+			.sendMessage({ message: "remove_tab", id })
+			.then(() => main())
+			.catch((e) => {
+				if (this.timeout) return;
+				console.warn("Error, trying again", e);
+				this.timeout = setTimeout(() => {
+					this.timeout = null;
+					browser.runtime
+						.sendMessage({ message: "remove_tab", id })
+						.then(() => main())
+						.catch((e) => console.warn("Retry failed", e));
+				}, this.retry_ms);
+			});
 	}
 
 	handle_onmessage(receive) {
@@ -284,10 +306,6 @@ class AltWebCS {
 			this.window_altweb_id = receive.id;
 			return;
 		}
-
-		const now = Date.now();
-		if (now - this.last_keydown < this.throttle_ms) return;
-		this.last_keydown = now;
 
 		const key = receive.key.toUpperCase();
 		switch (key) {
@@ -304,16 +322,18 @@ class AltWebCS {
 
 	handle_keydown(e) {
 		// DEVELOPER TOOL
-		if (e.key === "0") {
+
+		if (e.altKey && e.key === "0") {
+			e.preventDefault();
 			browser.runtime.sendMessage({ message: "reload" });
-			window.location.reload();
+			setTimeout(() => window.location.reload(), 500);
 		}
 	}
 
 	handle_keyup(e) {
 		if (e.key === "Alt") {
-			this.focus_tab();
-			this.remove_altweb();
+			e.preventDefault();
+			this.focus_tab(null, null);
 		}
 	}
 
