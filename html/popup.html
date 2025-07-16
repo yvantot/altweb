@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>AltWeb</title>
+		<meta name="description" content="AltWeb's settings config" />
+		<meta name="author" content="Jun Ivanne Dalman" />
+		<link rel="stylesheet" href="../css/popup.css" />
+		<script src="../js/popup.js" type="module" defer></script>
+	</head>
+	<body>
+		<!-- HEADER -->
+		<header>
+			<div class="title-container">
+				<div class="icon">
+					<img src="../assets/icons/icon32.png" />
+				</div>
+
+				<span class="vertical-line"></span>
+				<div class="text-title">
+					<a href="" target="_blank">AltWeb : Settings</a>
+					<span class="horizontal-line"></span>
+					<p>Alt Tab but for the browser 🔥</p>
+				</div>
+			</div>
+		</header>
+		<!-- BODY -->
+		<main>
+			<div class="feature-config">
+				<label for="allow-preview">
+					<div class="config-text">
+						<div class="config-info">
+							<p class="config-title">Enable tab preview</p>
+							<div class="config-status"></div>
+						</div>
+						<span class="horizontal-line"></span>
+						<p class="config-description">Preview tabs for better navigation experience at the cost of performance.</p>
+					</div>
+					<input type="checkbox" id="allow-preview" checked />
+				</label>
+				<label for="delete-preview">
+					<div class="config-text">
+						<div class="config-info">
+							<p class="config-title">Tab-previews time expiry</p>
+						</div>
+						<span class="horizontal-line"></span>
+						<p class="config-description">In order not to distrupt user's experience, tab previews are saved in storage for a specified amount of time. To make previews more accurate, lessen, to make preview popups less annoying, increase.</p>
+					</div>
+					<input type="text" placeholder="e.g '5' for 5 days before deletion" id="delete-preview" />
+				</label>
+				<label for="keep-awake">
+					<div class="config-text">
+						<div class="config-info">
+							<p class="config-title">Keep extension awake</p>
+							<div class="config-status"></div>
+						</div>
+						<span class="horizontal-line"></span>
+						<p class="config-description">Keep this on for better experience. If this is turned off, AltWeb may have input delays or need you to press Alt + W/Q/E more than once to work.</p>
+						<span class="horizontal-line"></span>
+						<p class="config-description">Requires browser restart to apply changes</p>
+					</div>
+					<input type="checkbox" id="keep-awake" checked />
+				</label>
+			</div>
+		</main>
+		<!-- FOOTER -->
+		<footer>
+			<div>
+				<button id="help">Help & About 📖</button>
+				<button id="donate">Lifetime Pro Access 🔥</button>
+			</div>
+			<div>
+				<button id="rate">Rate us ⭐</button>
+				<a href="https://yvantot.github.io/i" target="_blank">Try other tools 💎</a>
+			</div>
+		</footer>
+	</body>
+</html>

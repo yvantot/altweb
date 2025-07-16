@@ -19,6 +19,7 @@
 
 	backdrop-filter: blur(10px) !important;
 	display: flex !important;
+	flex-direction: column !important;
 	position: fixed !important;
 	top: 50% !important;
 	left: 50% !important;
@@ -36,6 +37,18 @@
 	font-size: 16px !important;
 	color-scheme: light dark;
 
+	.search-container {
+		padding: 1em 0 0 0;
+		width: 100%;
+		input {
+			outline: none;
+			border: none;
+			border-radius: 10px;
+			padding: 1em;
+			width: inherit;
+		}
+	}
+
 	.preview-container {
 		position: fixed;
 		height: fit-content;
@@ -45,6 +58,7 @@
 		flex-direction: column;
 		bottom: 100%;
 		left: 50%;
+		width: 100%;
 		transform: translateX(-50%);
 		.preview-img {
 			border-radius: 10px;
@@ -101,13 +115,14 @@
 	.tabs-container {
 		display: flex;
 		align-items: flex-start;
-		width: 100%;
 		height: fit-content;
 		transition: gap 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 		background-color: var(--bg-color) !important;
 		border-radius: 10px !important;
 		padding: 1.5em;
 		gap: 1em;
+		justify-content: center;
+		width: 100%;
 		overflow-x: auto;
 		overflow-y: visible;
 
@@ -147,6 +162,10 @@
 	display: none !important;
 }
 .tab-hover {
+	opacity: 1 !important;
 	padding-bottom: 0.3em;
 	transform: var(--tab-transform-hov);
+}
+.current-tab {
+	opacity: 0.3;
 }

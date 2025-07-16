@@ -1,7 +1,7 @@
 The Goal
-- Search Filter & Search internet
-- Add info, options, onInstalled open tab to promote, and popup
-*- Make preview optional
+- Bookmarks support
+- App info, links to other tools & donation
+
 
 Flow
 - Alt + ArrowKeys = [<-,->] Tab selection, [^, v] Mode selection [Windows, Bookmarks]
@@ -21,9 +21,11 @@ Possible implementation problems
 1. If my extension loads before the webpage, the possibility of my elements being overwritten is high (some websites are weird)
 2. Possible CSS inheritance bleeding which will make my injected element look different throughout different website
 3. Existing commands will make my shortcuts obsolete if the website has it.
+4. Some sites are so fucking slow that my scripts are blocked.
 
 Possible implementation solutions
 [x] 1. I can use setInterval forever to check if my element is appended, if not, then append. 
 [/] 1. Element attachment is based on user-input, so this problem is solved by design.
 [/] 2. Use of all: initial. Use of shadowDOM API. Use of ~custom~elements~ !important on :host to target important general properties
 [/] 3. Allow mouse use? Allow user shortcut re-mapping?
+[*] 4. Allow windows-only to avoid injecting scripts. Turns out this shit ain't possible.

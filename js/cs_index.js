@@ -17,7 +17,6 @@ class AltWebCS {
 		this.set_screen_size();
 		this.window_altweb();
 		browser.runtime.onMessage.addListener((receive) => this.handle_onmessage(receive));
-		window.addEventListener("keydown", (e) => this.handle_keydown(e));
 		window.addEventListener("keyup", (e) => this.handle_keyup(e));
 		document.addEventListener("mousedown", (e) => this.handle_mousedown(e));
 
@@ -75,25 +74,31 @@ class AltWebCS {
 	}
 
 	create_ui(res) {
-		const { tabs, windows, bookmarks, curr_tab } = res;
+		const { tabs } = res;
 		const frag = document.createDocumentFragment();
 		const tabs_c = Util.create_element("div", { class: "tabs-container" });
 		const preview_c = Util.create_element("div", { class: "preview-container" });
-		const windows_c = Util.create_element("div", { class: "windows-container" });
-		const bookmarks_c = Util.create_element("div", { class: "bookmarks-container" });
+		const search_c = Util.create_element("div", { class: "search-container no-display" });
+		const search_input = Util.create_element("input", { placeholder: "Search tabs/internet" });
+		search_c.append(search_input);
 
-		for (let tab of tabs) {
-			tabs_c.append(this.create_tab(tab));
+		search_input.addEventListener("input", (e) => this.handle_search_input(e));
+
+		for (let i = 0; i < tabs.length; i++) {
+			const tab = tabs[i];
+			const tab_el = this.create_tab(tab);
+			if (i === res.curr_tab_index) tab_el.classList.add("current-tab");
+
+			tabs_c.append(tab_el);
 		}
 
-		frag.append(preview_c, windows_c, tabs_c, bookmarks_c);
+		frag.append(preview_c, tabs_c, search_c);
 		return frag;
 	}
 
 	handle_mouseover(e) {
 		const target = e.target.closest(".tab-container");
 		if (!target) return;
-		console.log(target);
 		const id = target.dataset.id;
 		const windowId = target.dataset.windowId;
 		const url = target.dataset.url;
@@ -105,12 +110,12 @@ class AltWebCS {
 	}
 
 	handle_onclick(e) {
-		if (e.target.classList.contains("tabs-container")) return;
-
 		const target = e.target.closest(".tab-container");
-		const id = parseInt(target.dataset.id);
-		const windowId = parseInt(target.dataset.windowId);
-		this.focus_tab(id, windowId);
+		if (target) {
+			const id = parseInt(target.dataset.id);
+			const windowId = parseInt(target.dataset.windowId);
+			this.focus_tab(id, windowId);
+		}
 	}
 
 	create_main() {
@@ -139,7 +144,9 @@ class AltWebCS {
 	start_altweb(key) {
 		const main = (res) => {
 			const altweb = this.create_main();
-			const dx = key === "W" ? 1 : -1;
+			let dx = 0;
+			if (key === "W") dx = 1;
+			if (key === "Q") dx = -1;
 
 			if (altweb) {
 				const { element, host } = altweb;
@@ -160,6 +167,8 @@ class AltWebCS {
 				this.preview_tab();
 				this.preview_info();
 			}
+
+			if (key === "E") this.search_tab();
 		};
 
 		browser.runtime
@@ -183,6 +192,7 @@ class AltWebCS {
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
+			if (!child) return;
 			child.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
 			const title = $title ?? child.dataset.title;
 			const url = $url ?? child.dataset.url;
@@ -198,10 +208,10 @@ class AltWebCS {
 		}
 	}
 
-	async preview_tab($id = null, $windowId = null, $url = null, $index = null) {
+	async preview_tab($id = null, $windowId = null, $url = null, $index = null, reset = false) {
 		const container = this.host.querySelector(".preview-container");
 		if (this.window_altweb_id) container.querySelector("img")?.remove();
-		if (this.tab_index === this.index_origin) {
+		if (this.tab_index === this.index_origin || reset) {
 			if (this.window_altweb_id) document.body.style.backgroundImage = ``;
 			container.querySelector("img")?.remove();
 			return;
@@ -210,6 +220,7 @@ class AltWebCS {
 		const tabs_c = this.host?.querySelector(".tabs-container");
 		if (tabs_c) {
 			const child = tabs_c.children[this.tab_index];
+			if (!child) return;
 			const url = $url ?? child.dataset.url;
 			const id = $id ?? child.dataset.id;
 			const windowId = $windowId ?? child.dataset.windowId;
@@ -223,6 +234,7 @@ class AltWebCS {
 			}
 
 			const res = await browser.runtime.sendMessage({ message: "preview_tab", id, index, windowId, url });
+			console.log(res);
 			if (res && res.src) {
 				if (this.window_altweb_id) {
 					// LOLLL
@@ -257,12 +269,31 @@ class AltWebCS {
 		this.host = null;
 	}
 
-	move_selection(dx) {
-		const container = this.host.querySelector(".tabs-container");
+	move_selection(dx, set_index = null) {
+		const container = this.host?.querySelector(".tabs-container");
 		container.querySelectorAll(".tab-hover").forEach((el) => el.classList.remove("tab-hover"));
 		const children = container.children;
-		this.tab_index += dx;
-		console.log(this.tab_index, this.index_origin);
+
+		if (set_index != null) this.tab_index = set_index;
+		else this.tab_index += dx;
+
+		let no_display_tabs = 0;
+		if (dx > 0) {
+			for (let i = this.tab_index; i < children.length; i++) {
+				const tab = children[i];
+				if (tab.classList.contains("no-display")) no_display_tabs += 1;
+				else break;
+			}
+
+			this.tab_index += no_display_tabs;
+		} else if (dx < 0) {
+			for (let i = this.tab_index; i >= 0; i--) {
+				const tab = children[i];
+				if (tab.classList.contains("no-display")) no_display_tabs += 1;
+				else break;
+			}
+			this.tab_index -= no_display_tabs;
+		}
 
 		if (this.tab_index > children.length - 1) this.tab_index = 0;
 		else if (this.tab_index < 0) this.tab_index = children.length - 1;
@@ -313,6 +344,7 @@ class AltWebCS {
 				this.remove_tab();
 				break;
 			case "Q":
+			case "E":
 			case "W": {
 				this.start_altweb(key);
 				break;
@@ -320,17 +352,91 @@ class AltWebCS {
 		}
 	}
 
-	handle_keydown(e) {
-		// DEVELOPER TOOL
+	search_tab() {
+		if (!document.getElementById("altweb")) return;
+		const search = this.host?.querySelector(".search-container");
 
-		if (e.altKey && e.key === "0") {
-			e.preventDefault();
-			browser.runtime.sendMessage({ message: "reload" });
-			setTimeout(() => window.location.reload(), 500);
+		if (search) {
+			search.classList.toggle("no-display");
+			setTimeout(() => {
+				const input = search.querySelector("input");
+				input.value = "";
+				input.focus();
+			}, 50);
+		}
+	}
+
+	handle_search_input(e) {
+		const str_to_search = e.target.value.toLowerCase();
+		const tabs_c = this.host?.querySelector(".tabs-container");
+		if (tabs_c) {
+			const tabs = tabs_c.children;
+			let showed_first = false;
+			let have_result = false;
+			let i = 0;
+			for (let tab of tabs) {
+				const title = tab.dataset.title.toLowerCase();
+				const url = tab.dataset.url.toLowerCase();
+				const id = tab.dataset.id;
+				const windowId = tab.dataset.windowId;
+				const index = tab.dataset.index;
+
+				if (!title.includes(str_to_search) && !url.includes(str_to_search)) {
+					tab.classList.add("no-display");
+				} else if (!showed_first) {
+					showed_first = true;
+					tab.classList.remove("no-display");
+					console.log({ i, tab_index: this.tab_index });
+					this.move_selection(0, i);
+					this.preview_info(title, url);
+					this.preview_tab(id, windowId, url, index);
+					have_result = true;
+					tabs_c.classList.remove("no-display");
+				} else {
+					have_result = true;
+					tab.classList.remove("no-display");
+					tabs_c.classList.remove("no-display");
+				}
+
+				i += 1;
+			}
+			if (!have_result) {
+				this.preview_info("Search the web", "URL or search query");
+				this.preview_tab(null, null, null, null, true);
+				tabs_c.classList.add("no-display");
+			}
 		}
 	}
 
 	handle_keyup(e) {
+		const search = this.host?.querySelector(".search-container");
+		if (search && !search.classList.contains("no-display")) {
+			if (e.key === "Enter") {
+				const tabs_c = this.host?.querySelector(".tabs-container");
+				tabs_c.classList.remove("no-display");
+				const tabs = tabs_c.children;
+				let no_displayed = true;
+				const input = this.host?.querySelector("input");
+				const query = input.value;
+
+				input.value = "";
+
+				for (let tab of tabs) {
+					if (!tab.classList.contains("no-display")) {
+						no_displayed = false;
+						this.focus_tab(null, null);
+					}
+					tab.classList.remove("no-display");
+				}
+
+				if (no_displayed) {
+					chrome.runtime.sendMessage({ message: "open_tab", query });
+					this.remove_altweb();
+				}
+			}
+			return;
+		}
+
 		if (e.key === "Alt") {
 			e.preventDefault();
 			this.focus_tab(null, null);

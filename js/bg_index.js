@@ -1,12 +1,11 @@
-// Persistent-bg
-// Caveats: Never updates if available, need to reload manually
-setInterval(chrome.runtime.getPlatformInfo, 20e3);
-
 // Don't use persistent variables in background scripts.
 self.browser = self.browser || self.chrome;
 
 class AltWebBG {
-	init() {
+	async init() {
+		await this.set_configs_default();
+		await this.keep_awake();
+		await this.delete_old_preview();
 		browser.runtime.onMessage.addListener((receive, _, send) => this.handle_onmessage(receive, send));
 		browser.commands.onCommand.addListener((command) => this.handle_oncommand(command));
 	}
@@ -33,9 +32,22 @@ class AltWebBG {
 			this.remove_window_altweb(receive);
 			return false;
 		}
-		if (message === "reload") {
-			browser.runtime.reload();
+		if (message === "open_tab") {
+			this.open_tab(receive);
 			return false;
+		}
+	}
+
+	open_tab(receive) {
+		let query = receive.query.trim();
+		const is_link = /^(?:\s*)(?:https:\/\/|http:\/\/)?[^ ]*?\.[^ ]*?(?:\s*)$/;
+		const has_protocol = /^ *(?:https:\/\/|http:\/\/)/;
+		if (is_link.test(query)) {
+			if (!has_protocol.test(query)) query = "https://" + query;
+			browser.tabs.create({ active: true, url: query });
+		} else {
+			const google_search = "https://www.google.com/search?q=";
+			browser.tabs.create({ active: true, url: google_search + query });
 		}
 	}
 
@@ -92,19 +104,18 @@ class AltWebBG {
 	}
 
 	handle_oncommand(command) {
-		browser.tabs.query({ active: true, lastFocusedWindow: true }).then((tabs) => {
+		browser.tabs.query({ active: true, lastFocusedWindow: true }).then(async (tabs) => {
 			const tab = tabs[0];
-			if (command === "q") {
-				browser.tabs.sendMessage(tab.id, { key: "q" }).catch(() => this.window_altweb(command));
-			}
-			if (command === "w") {
-				browser.tabs.sendMessage(tab.id, { key: "w" }).catch(() => this.window_altweb(command));
-			}
-			if (command === "d") {
-				browser.tabs.sendMessage(tab.id, { key: "d" });
-			}
-			if (command === "e") {
-				browser.tabs.sendMessage(tab.id, { key: "e" });
+			switch (command) {
+				case "q":
+				case "w":
+				case "e": {
+					browser.tabs.sendMessage(tab.id, { key: command }).catch(() => this.window_altweb(command));
+					break;
+				}
+				case "d": {
+					browser.tabs.sendMessage(tab.id, { key: "d" });
+				}
 			}
 		});
 	}
@@ -124,7 +135,7 @@ class AltWebBG {
 	async fetch_data() {
 		const tabs = await browser.tabs.query({});
 		const windows = await browser.windows.getAll({});
-		const bookmarks = await browser.bookmarks.getTree();
+		// const bookmarks = await browser.bookmarks.getTree();
 
 		const last_focused_win = await browser.windows.getLastFocused({ windowTypes: ["normal"] });
 		const alt_web = await browser.tabs.query({ url: [`${browser.runtime.getURL("html/index.html")}*`] });
@@ -154,10 +165,13 @@ class AltWebBG {
 			i += t_per_w[w].count;
 		}
 
-		return { tabs, windows, bookmarks, curr_tab_index: Math.max(i - 1, 0) };
+		return { tabs, curr_tab_index: Math.max(i - 1, 0) };
 	}
 
 	async fetch_preview(receive) {
+		const { configs } = await browser.storage.local.get("configs");
+		if (configs.allow_preview === false) return;
+
 		const id = parseInt(receive.id);
 		const windowId = parseInt(receive.windowId);
 		const index = parseInt(receive.index);
@@ -168,56 +182,72 @@ class AltWebBG {
 		if (url in preview_sources && preview_sources[url].src) {
 			return { src: preview_sources[url].src };
 		} else {
+			const tab = await browser.tabs.get(id);
+			if (tab.status === "loading" || tab.discarded || tab?.frozen) return;
+
+			// Open tab as a window popup
+			// Because captureVisibleTab only works for active tabs, so this is a get-around
+			const popup = await browser.windows.create({
+				tabId: id,
+				type: "popup",
+				width: 1000,
+				height: 650,
+				top: 0,
+				left: 0,
+			});
+
+			// captureVisibleTab fails if there's no timeout, tbh I don't understand either
+			// The cause might be browser's optimization if the tab isn't active
+			await new Promise((r) => setTimeout(r, 300));
 			try {
-				const tab = await browser.tabs.get(id);
-				if (tab.status === "loading" || tab.discarded || tab?.frozen) return;
-
-				const popup = await browser.windows.create({
-					tabId: id,
-					type: "popup",
-					focused: false,
-					width: 1000,
-					height: 650,
-					top: 0,
-					left: 0,
-				});
-				await new Promise((r) => setTimeout(r, 300));
-				try {
-					browser.windows.update(popup.id, { focused: true });
-					const src = await browser.tabs.captureVisibleTab(popup.id, {
-						format: "jpeg",
-						quality: 50,
-					});
-					browser.tabs.move(id, { index, windowId }).catch(() => {
-						// BUG: Might not be compatible to 'popup' heavy extensions..
-						// ERROR: If window only have one tab and the tab will become a popup, the window will close
-						browser.windows.create({
-							tabId: id,
-							type: "normal",
-							focused: false,
-						});
-					});
-
-					preview_sources[url] = {
-						src,
-						timestamp: new Date().toISOString(),
-					};
-					browser.storage.local.set({ preview_sources });
-					return { src };
-				} catch (e) {
-					console.error(e);
-					browser.tabs.move(id, { index, windowId });
-				}
+				const src = await browser.tabs.captureVisibleTab(popup.id, { format: "jpeg", quality: 25 });
+				preview_sources[url] = { src, timestamp: new Date().toISOString() };
+				browser.storage.local.set({ preview_sources });
+				return { src };
 			} catch (e) {
 				console.error(e);
-				browser.tabs.move(id, { index, windowId });
-				return null;
+			} finally {
+				browser.tabs.move(id, { index, windowId }).catch(() => {
+					// ERROR: If window only have one tab and the tab will become a popup, the window will close
+					// Below is the fix
+					browser.windows.create({
+						tabId: id,
+						type: "normal",
+						focused: false,
+					});
+				});
 			}
 		}
 	}
 
-	async delete_old_preview(max_age) {
+	async set_configs_default() {
+		let { configs } = await browser.storage.local.get("configs");
+		if (configs == null) configs = {};
+
+		const set_default = (name, value) => {
+			if (configs[name] == null) configs[name] = value;
+		};
+
+		set_default("keep_awake", true);
+		set_default("allow_preview", true);
+		set_default("delete_preview", 5 * 24 * 60 * 60 * 1000);
+
+		await browser.storage.local.set({ configs });
+	}
+
+	async keep_awake() {
+		// Persistent-bg
+		// Caveats: Never updates if available, need to reload manually
+		const prevent_sleep = () => setInterval(chrome.runtime.getPlatformInfo, 20e3);
+
+		const { configs } = await browser.storage.local.get("configs");
+		if (configs.keep_awake) prevent_sleep();
+	}
+
+	async delete_old_preview() {
 		const { preview_sources } = await browser.storage.local.get("preview_sources");
+		const { configs } = await browser.storage.local.get("configs");
+		const max_age = configs.delete_preview;
 		if (preview_sources) {
 			const now = new Date();
 			for (const key in preview_sources) {
@@ -231,9 +261,8 @@ class AltWebBG {
 		}
 	}
 }
+
 (async () => {
 	const index = new AltWebBG();
-	const max_age = 5 * 24 * 60 * 60 * 1000;
-	await index.delete_old_preview(max_age);
 	index.init();
 })();
